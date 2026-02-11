@@ -98,11 +98,16 @@ with tab1:
             with c1:
                 st.subheader("Prediction Result")
                 st.metric("Risk Probability", f"{prob:.2%}")
-                if prob > 0.5:
-                    st.error("🔴 High Risk")
+                if prob < 0.3:
+                    risk_level = "🟢 Low Risk"
+                    st.success(risk_level)
+                elif prob <= 0.7:
+                    risk_level = "🟡 Medium Risk"
+                    st.warning(risk_level)
                 else:
-                    st.success("🟢 Low Risk")
-            
+                    risk_level = "🔴 High Risk"
+                    st.error(risk_level)
+                                    
             with c2:
                 st.subheader("SHAP Explanation")
                 with st.spinner("Computing SHAP values..."):
@@ -183,14 +188,28 @@ with tab2:
                     probs = model.predict(X)
                 
                 result = df.copy()
-                result['Risk_Probability'] = np.round(probs, 4)
-                result['Risk_Level'] = ['High Risk' if p > 0.5 else 'Low Risk' for p in probs]
-                
+                result['Risk_Probability'] = np.round(probs,2)
+                def classify_risk(p):
+                    if p < 0.3:
+                        return "Low Risk"
+                    elif p <= 0.7:
+                        return "Medium Risk"
+                    else:
+                        return "High Risk"
+
+                result['Risk_Level'] = [classify_risk(p) for p in probs]
+                                
                 # Highlight
                 def highlight_risk(val):
-                    return 'background-color: #ffcccc' if val == 'High Risk' else 'background-color: #ccffcc'
+                    if val == "High Risk":
+                        return 'background-color: #ffcccc'
+                    elif val == "Medium Risk":
+                        return 'background-color: #fff3cd'
+                    else:
+                        return 'background-color: #ccffcc'
+
                 st.dataframe(result.style.applymap(highlight_risk, subset=['Risk_Level']))
-                
+                            
                 # Download
                 csv_out = result.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
@@ -245,3 +264,4 @@ with tab2:
         except Exception as e:
             st.error(f"Error processing file: {e}")
             st.exception(e) 
+
